@@ -1,15 +1,11 @@
-import os
-
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from dotenv import load_dotenv
 from starlette import status
 from src.database import db_dependency
-from src.memes.models import Author, Meme, MemeAuthor
-from src.memes.utils import get_memes
-from datetime import datetime
+from src.memes.services import MemeServices
+from src.memes.utils import get_memes, has_cached_memes
 
 load_dotenv()
-
 
 router = APIRouter(
     prefix='/memes',
@@ -19,25 +15,18 @@ router = APIRouter(
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def get_reddit_memes(db: db_dependency):
+    meme_service = MemeServices(db)
+    if has_cached_memes():
+        meme_list = meme_service.find_most_recent_memes()
+        if len(meme_list) == 20:
+            return meme_list
     memes = await get_memes()
-    for meme_entry in memes:
-        utc_datetime = datetime.utcfromtimestamp(meme_entry['created_utc'])
-        existing_meme = db.query(Meme).filter(Meme.id == meme_entry['id']).first()
-        if existing_meme:
-            continue
-        meme = Meme(id=meme_entry['id'], title=meme_entry['title'], url=meme_entry['url'], score=meme_entry['score'],
-                    created_at=utc_datetime)
-        author = db.query(Author).filter(Author.id == meme_entry['author_id']).first()
-        if not author:
-            author = Author(name=meme_entry['author'], id=meme_entry['author_id'])
-
-        meme.authors.append(author)
-        db.add(meme)
-        db.commit()
-
+    memes = meme_service.save_memes(memes)
 
     return memes
 
 
-
-
+@router.get("/", status_code=status.HTTP_200_OK)
+async def get_memes(db: db_dependency):
+    meme_service = MemeServices(db).get_all_memes()
+    return meme_service

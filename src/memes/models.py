@@ -15,7 +15,7 @@ class Meme(Base):
     url = Column(String)
     score = Column(Integer)
     created_at = Column(DateTime)
-
+    author_id = Column(String, ForeignKey('authors.id'))
     authors = relationship('Author', secondary=MemeAuthor, back_populates='memes')
 
 
