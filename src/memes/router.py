@@ -1,11 +1,15 @@
-from fastapi import APIRouter
+import os
+
+from fastapi import APIRouter, Request
 from dotenv import load_dotenv
 from starlette import status
 from src.database import db_dependency
 from src.memes.models import Author, Meme, MemeAuthor
 from src.memes.utils import get_memes
 from datetime import datetime
+
 load_dotenv()
+
 
 router = APIRouter(
     prefix='/memes',
@@ -33,3 +37,7 @@ async def get_reddit_memes(db: db_dependency):
 
 
     return memes
+
+
+
+
